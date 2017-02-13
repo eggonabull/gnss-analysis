@@ -87,3 +87,32 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+MANIFEST
+_build
+docs/man/*.gz
+docs/source/api/generated
+docs/source/config.rst
+docs/gh-pages
+notebook/static/components
+notebook/static/style/*.min.css*
+notebook/static/*/js/built/
+notebook/static/*/built/
+notebook/static/built/
+notebook/static/*/js/main.min.js*
+notebook/static/lab/*bundle.js
+node_modules
+*.py[co]
+*~
+*.bak
+.DS_Store
+\#*#
+.#*
+src
+
+*.swp
+*.map
+.idea/
+Read the Docs
+config.rst
+
