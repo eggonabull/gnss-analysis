@@ -92,6 +92,9 @@ def get_velocity_data(data):
         unit_vec = latlon.unit(diff_vec)
         distance = haversine(point, prev_point, miles=True)
         tdiff_hours = (point.time - prev_point.time).total_seconds() / 60 / 60
+        if tdiff_hours == 0:
+            prev_point = point
+            continue
         speed_vec = latlon.scale(unit_vec, distance / tdiff_hours)
         mid_time = point.time - (point.time - prev_point.time) / 2
         prev_point = point
@@ -104,7 +107,7 @@ def get_velocity_plot(datafile):
     data = get_data(datafile)
     velocity_data = get_velocity_data(data)
     x, y = zip(*velocity_data)
-    plt.scatter(x, y)
+    plt.scatter(x, y, color=(0.1, 0.3, 0.6, 0.1))
     return plt.show()
 
 
@@ -120,5 +123,5 @@ def get_acceleration_plot(datafile):
         acc_vec = latlon.scale(diff_vec, 1 / tdiff)
         results.append(acc_vec)
     x, y = zip(*results)
-    plt.scatter(x, y)
+    plt.scatter(x, y, color=(0.4, 0.6, 0.1, 0.1))
     return plt.show()
