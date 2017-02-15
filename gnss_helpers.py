@@ -26,6 +26,9 @@ class LatLngTime():
     def __str__(self):
         return "LatLngTime(%f, %f, %s)" % (self.lat, self.lon, self.time)
 
+    def __repr__(self):
+        return self.__str__()
+
 
 def get_data(datafile):
     latlngs = []
@@ -42,24 +45,52 @@ def get_data(datafile):
     return latlngs
 
 
+def get_annotated_data(datafile):
+    latlngs = get_data(datafile)
+    num_latlngs = len(latlngs)
+    for i in range(1, num_latlngs):
+        dist = haversine(latlngs[i], latlngs[i - 1], miles=True)
+        tdiff = (latlngs[i].time - latlngs[i - 1].time).total_seconds() / 3600
+        speed = dist / tdiff
+
+        latlngs[i - 1].next_dist = dist
+        latlngs[i - 1].next_tdiff = tdiff
+        latlngs[i - 1].next_speed = speed
+
+        latlngs[i].prev_dist = dist
+        latlngs[i].prev_tdiff = tdiff
+        latlngs[i].prev_speed = speed
+
+        if i > 1:
+            latlngs[i - 1].avg_tdiff = (latlngs[i - 1].next_tdiff + latlngs[i - 1].prev_tdiff) / 2
+            latlngs[i - 1].acc = (latlngs[i - 1].next_speed - latlngs[i - 1].prev_speed) / latlngs[i - 1].avg_tdiff
+
+    return latlngs
+
+
 def get_bounds_for_linestring(linestring):
+    return get_bounds_for_linestrings([linestring])
+
+
+def get_bounds_for_linestrings(linestrings):
     # print("typeof(linestring)", type(linestring))
     # print("linestring", linestring)
     min_lat = 90
     max_lat = -90
     min_lon = 180
     max_lon = -180
-    for point in linestring:
-        lat = point[0]
-        lon = point[1]
-        if lat < min_lat:
-            min_lat = lat
-        if lat > max_lat:
-            max_lat = lat
-        if lon < min_lon:
-            min_lon = lon
-        if lon > max_lon:
-            max_lon = lon
+    for linestring in linestrings:
+        for point in linestring:
+            lat = point[0]
+            lon = point[1]
+            if lat < min_lat:
+                min_lat = lat
+            if lat > max_lat:
+                max_lat = lat
+            if lon < min_lon:
+                min_lon = lon
+            if lon > max_lon:
+                max_lon = lon
     return {
         "min_lat": min_lat,
         "min_lon": min_lon,
@@ -69,13 +100,18 @@ def get_bounds_for_linestring(linestring):
 
 
 def get_map_for_linestring(linestring, zoom=14):
-    bounds = get_bounds_for_linestring(linestring)
+    return get_map_for_linestrings([linestring], zoom)
+
+
+def get_map_for_linestrings(linestrings, zoom=14):
+    bounds = get_bounds_for_linestrings(linestrings)
     center_lat = (bounds["min_lat"] + bounds["max_lat"]) / 2
     center_lon = (bounds["min_lon"] + bounds["max_lon"]) / 2
     center = [center_lat, center_lon]
-    p = Polyline(locations=[ll.latlon for ll in linestring], color='red', fill=False)
     m = Map(center=center, zoom=zoom)
-    m += p
+    for linestring in linestrings:
+        p = Polyline(locations=[ll.latlon for ll in linestring], color='red', fill=False)
+        m += p
     return m
 
 
@@ -125,3 +161,5 @@ def get_acceleration_plot(datafile):
     x, y = zip(*results)
     plt.scatter(x, y, color=(0.4, 0.6, 0.1, 0.1))
     return plt.show()
+
+
