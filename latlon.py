@@ -10,6 +10,8 @@ def scale(vec, scalar):
 
 
 def abs(vec):
+    if vec is None:
+        return 0
     return math.sqrt(vec[0] * vec[0] + vec[1] * vec[1])
 
 
