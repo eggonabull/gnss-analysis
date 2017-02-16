@@ -2,6 +2,8 @@ import math
 
 
 def diff(a, b):
+    if a is None or b is None:
+        return None
     return [b[0] - a[0], b[1] - a[1]]
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import csv
 import latlon
+import math
 import matplotlib.pyplot as plt
 
 from haversine import haversine
@@ -17,6 +18,8 @@ class LatLngTime():
         self.time = time
         self.latlon = [lat, lon]
         self.acc = None
+        self.prev_speed = None
+        self.next_speed = None
 
     def __getitem__(self, item):
         return self.latlon[item]
@@ -55,7 +58,7 @@ def get_annotated_data(datafile):
         latlngs[i - 1].next_speed = speed_vec
         latlngs[i].prev_speed = speed_vec
 
-        if i > 1:
+        if i > 1 and latlngs[i - 1].next_speed is not None and latlngs[i - 1].prev_speed is not None:
             speed_diff_vec = latlon.diff(latlngs[i - 1].next_speed, latlngs[i - 1].prev_speed)
             tdiff_speed = (latlngs[i - 1].next_speed.time - latlngs[i - 1].prev_speed.time).total_seconds()
             acc_vec = latlon.scale(speed_diff_vec, 1 / (tdiff_speed))
@@ -112,7 +115,6 @@ def get_map_for_linestrings(linestrings, zoom=14):
     for linestring in linestrings:
         intensity = 1 - len(linestring) / max_len
         color = "#" + ("{:02x}".format(round(intensity * 255)) * 3)
-        print(color)
         p = Polyline(locations=[ll.latlon for ll in linestring], color=color, fill=False)
         m += p
     return m
@@ -148,6 +150,8 @@ def get_velocity_data(data):
     return results
 
 
+
+
 def get_velocity_plot(datafile):
     data = get_data(datafile)
     velocity_data = get_velocity_data(data)
@@ -170,3 +174,32 @@ def get_acceleration_plot(datafile):
     x, y = zip(*results)
     plt.scatter(x, y, color=(0.4, 0.6, 0.1, 0.1))
     return plt.show()
+
+
+def get_angular_momentum_data(data):
+    prev_point = data[0]
+    results = []
+    for point in data[1:-2]:
+        u = point.prev_speed
+        v = point.next_speed
+        if u is None or v is None:
+            continue
+        num = u[0]*v[0]+u[1]*v[1]
+        denom = latlon.abs(u) * latlon.abs(v)
+        if denom == 0:
+            continue
+        #print("num", num, "denom", denom)
+        try:
+            results.append(math.acos(num/denom))
+        except ValueError:
+            continue
+    return results
+
+def angular_momentum_plot(datafile):
+    data = get_annotated_data(datafile)
+    angular_momentum = get_angular_momentum_data(data)
+    #plt.hist(angular_momentum)
+    plt.scatter(range(len(angular_momentum)), sorted(angular_momentum))
+    #plt.axis([0, 35000, 0, 90])
+    return plt.show()
+
