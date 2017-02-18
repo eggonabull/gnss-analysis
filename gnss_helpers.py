@@ -176,7 +176,7 @@ def get_acceleration_plot(datafile):
     return plt.show()
 
 
-def get_angular_momentum_data(data):
+def get_angular_velocity_data(data):
     prev_point = data[0]
     results = []
     for point in data[1:-2]:
@@ -190,16 +190,18 @@ def get_angular_momentum_data(data):
             continue
         #print("num", num, "denom", denom)
         try:
-            results.append(math.acos(num/denom))
+            angle = math.acos(num/denom)
+            angular_velocity = angle / (v.time - u.time).total_seconds()
+            results.append(angular_velocity)
         except ValueError:
             continue
     return results
 
-def angular_momentum_plot(datafile):
+def angular_velocity_plot(datafile):
     data = get_annotated_data(datafile)
-    angular_momentum = get_angular_momentum_data(data)
+    angular_momentum = get_angular_velocity_data(data)
     #plt.hist(angular_momentum)
-    plt.scatter(range(len(angular_momentum)), sorted(angular_momentum))
+    plt.scatter(range(len(angular_momentum)), sorted(angular_momentum), color="#665500")
     #plt.axis([0, 35000, 0, 90])
     return plt.show()
 
