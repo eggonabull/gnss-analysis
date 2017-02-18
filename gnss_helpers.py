@@ -4,6 +4,9 @@ import latlon
 import math
 import matplotlib.pyplot as plt
 
+import matplotlib
+from matplotlib import collections as mc
+
 from haversine import haversine
 from dateutil.parser import parse as parse_date
 from ipyleaflet import Map, Polyline, Marker
@@ -20,6 +23,7 @@ class LatLngTime():
         self.acc = None
         self.prev_speed = None
         self.next_speed = None
+        self.angular_velocity = None
 
     def __getitem__(self, item):
         return self.latlon[item]
@@ -113,11 +117,45 @@ def get_map_for_linestrings(linestrings, zoom=14):
     for linestring in linestrings:
         max_len = max(max_len, len(linestring))
     for linestring in linestrings:
-        intensity = 1 - len(linestring) / max_len
-        color = "#" + ("{:02x}".format(round(intensity * 255)) * 3)
-        p = Polyline(locations=[ll.latlon for ll in linestring], color=color, fill=False)
+        # intensity = 1 - len(linestring) / max_len
+        # color = "#" + ("{:02x}".format(round(intensity * 255)) * 3)
+        p = Polyline(locations=[point.latlon for point in linestring], fill=False)
         m += p
     return m
+
+import pylab as pl
+
+def get_plot_for_linestrings(linestrings, zoom=14):
+    bounds = get_bounds_for_linestrings(linestrings)
+    center_lat = (bounds["min_lat"] + bounds["max_lat"]) / 2
+    center_lon = (bounds["min_lon"] + bounds["max_lon"]) / 2
+    center = [center_lat, center_lon]
+    max_len = 0
+    colors = []
+    lines = []
+    outputs = []
+    for linestring in linestrings:
+        max_len = max(max_len, len(linestring))
+    for linestring in linestrings:
+        for i in range(1, len(linestring)):
+            #intensity = 1 - len(linestring) / max_len
+            #color = "#" + ("{:02x}".format(round(intensity * 255)) * 3)
+            point = linestring[i]
+            prev_point = linestring[i - 1]
+            angular_velocity = point.angular_velocity
+            hue = angular_velocity / 14 if angular_velocity is not None else 0
+            lightness = 1 if angular_velocity is not None else 0
+            color = matplotlib.colors.hsv_to_rgb((hue, 1, lightness))
+            outputs.append(([prev_point.latlon, point.latlon], color))
+    outputs = sorted(outputs, key=lambda x: 1-x[1][0])
+    lines = [output[0] for output in outputs]
+    colors = [output[1] for output in outputs]
+    lc = mc.LineCollection(lines, colors=colors, linewidths=2)
+    fig, ax = pl.subplots()
+    ax.add_collection(lc)
+    ax.autoscale()
+    ax.margins(0.1)
+    return plt.show()
 
 
 def get_map_for_data_file(datafile, zoom=14):
@@ -148,8 +186,6 @@ def get_velocity_data(data):
             results.append(speed_vec)
         prev_point = point
     return results
-
-
 
 
 def get_velocity_plot(datafile):
@@ -191,17 +227,27 @@ def get_angular_velocity_data(data):
         #print("num", num, "denom", denom)
         try:
             angle = math.acos(num/denom)
-            angular_velocity = angle / (v.time - u.time).total_seconds()
+            angular_velocity = (angle / (v.time - u.time).total_seconds()) * (latlon.abs(u) + latlon.abs(v)) / 2
             results.append(angular_velocity)
+            point.angular_velocity = angular_velocity
         except ValueError:
             continue
     return results
 
 def angular_velocity_plot(datafile):
     data = get_annotated_data(datafile)
-    angular_momentum = get_angular_velocity_data(data)
-    #plt.hist(angular_momentum)
-    plt.scatter(range(len(angular_momentum)), sorted(angular_momentum), color="#665500")
+    angular_velocity = get_angular_velocity_data(data)
+    #plt.hist(angular_velocity)
+    plt.scatter(range(len(angular_velocity)), sorted(angular_velocity), color="#665500")
+    #plt.axis([0, 35000, 0, 90])
+    return plt.show()
+
+def angular_velocity_plot_for_data(data):
+    angular_velocity = []
+    for datum in data:
+        angular_velocity += get_angular_velocity_data(datum)
+    #plt.hist(angular_velocity)
+    plt.scatter(range(len(angular_velocity)), sorted(angular_velocity), color="#665500")
     #plt.axis([0, 35000, 0, 90])
     return plt.show()
 
